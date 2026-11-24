@@ -1,5 +1,6 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { createApp } from "../src/app.js";
 import type { Config } from "../src/config.js";
 
@@ -19,30 +20,30 @@ describe("authentication flow", () => {
       email: "Person@Example.com",
       password: "a-strong-test-password"
     });
-    expect(registered.status).toBe(201);
+    assert.equal(registered.status, 201);
 
     const profile = await request(app)
       .get("/me")
       .set("Authorization", `Bearer ${registered.body.accessToken}`);
-    expect(profile.status).toBe(200);
-    expect(profile.body.email).toBe("person@example.com");
+    assert.equal(profile.status, 200);
+    assert.equal(profile.body.email, "person@example.com");
 
     const refreshed = await request(app).post("/auth/refresh").send({
       refreshToken: registered.body.refreshToken
     });
-    expect(refreshed.status).toBe(200);
-    expect(refreshed.body.refreshToken).not.toBe(registered.body.refreshToken);
+    assert.equal(refreshed.status, 200);
+    assert.notEqual(refreshed.body.refreshToken, registered.body.refreshToken);
 
     const reused = await request(app).post("/auth/refresh").send({
       refreshToken: registered.body.refreshToken
     });
-    expect(reused.status).toBe(401);
-    expect(reused.body.error).toBe("REFRESH_TOKEN_REUSE");
+    assert.equal(reused.status, 401);
+    assert.equal(reused.body.error, "REFRESH_TOKEN_REUSE");
 
     const familyRevoked = await request(app).post("/auth/refresh").send({
       refreshToken: refreshed.body.refreshToken
     });
-    expect(familyRevoked.status).toBe(401);
+    assert.equal(familyRevoked.status, 401);
   });
 
   it("does not reveal whether an unknown email or wrong password failed", async () => {
@@ -51,7 +52,7 @@ describe("authentication flow", () => {
       email: "missing@example.com",
       password: "a-strong-test-password"
     });
-    expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: "INVALID_CREDENTIALS" });
+    assert.equal(response.status, 401);
+    assert.deepEqual(response.body, { error: "INVALID_CREDENTIALS" });
   });
 });
